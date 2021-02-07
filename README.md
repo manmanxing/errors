@@ -1,59 +1,66 @@
-# errors [![Travis-CI](https://travis-ci.org/pkg/errors.svg)](https://travis-ci.org/pkg/errors) [![AppVeyor](https://ci.appveyor.com/api/projects/status/b98mptawhudj53ep/branch/master?svg=true)](https://ci.appveyor.com/project/davecheney/errors/branch/master) [![GoDoc](https://godoc.org/github.com/pkg/errors?status.svg)](http://godoc.org/github.com/pkg/errors) [![Report card](https://goreportcard.com/badge/github.com/pkg/errors)](https://goreportcard.com/report/github.com/pkg/errors) [![Sourcegraph](https://sourcegraph.com/github.com/pkg/errors/-/badge.svg)](https://sourcegraph.com/github.com/pkg/errors?badge)
+# Forked from https://github.com/pkg/errors
 
-Package errors provides simple error handling primitives.
+**go1.7+ required**
 
-`go get github.com/pkg/errors`
+## Usage
 
-The traditional error handling idiom in Go is roughly akin to
 ```go
-if err != nil {
-        return err
+package main
+
+import (
+	stderrors "errors"
+	"fmt"
+	"github.com/manmanxing/errors"
+)
+
+func main() {
+	err := test3()
+	if err != nil {
+		fmt.Println(errors.String(err))
+		return
+	}
+}
+
+func test0() error {
+	return stderrors.New("original message")
+}
+
+func test1() error {
+	err := test0()
+	if err != nil {
+		return errors.Wrap(err,"test1 wrap message")
+	}
+	return nil
+}
+
+func test2() error {
+	err := test1()
+	if err != nil {
+		return errors.Wrap(err, "test2 wrap message")
+	}
+	return nil
+}
+
+func test3() error {
+	err := test2()
+	if err != nil {
+		return errors.Wrap(err,"test3 wrap message")
+	}
+	return nil
 }
 ```
-which applied recursively up the call stack results in error reports without context or debugging information. The errors package allows programmers to add context to the failure path in their code in a way that does not destroy the original value of the error.
 
-## Adding context to an error
-
-The errors.Wrap function returns a new error that adds context to the original error. For example
-```go
-_, err := ioutil.ReadAll(r)
-if err != nil {
-        return errors.Wrap(err, "read failed")
-}
+The result is:
 ```
-## Retrieving the cause of an error
+$ go run main.go
+test3 wrap message: test2 wrap message: test1 wrap message: original message
+main.test1
+        awesomeProject/main.go:25
+main.test2
+        awesomeProject/main.go:31
+main.test3
+        awesomeProject/main.go:39
+main.main
+        awesomeProject/main.go:11
 
-Using `errors.Wrap` constructs a stack of errors, adding context to the preceding error. Depending on the nature of the error it may be necessary to reverse the operation of errors.Wrap to retrieve the original error for inspection. Any error value which implements this interface can be inspected by `errors.Cause`.
-```go
-type causer interface {
-        Cause() error
-}
 ```
-`errors.Cause` will recursively retrieve the topmost error which does not implement `causer`, which is assumed to be the original cause. For example:
-```go
-switch err := errors.Cause(err).(type) {
-case *MyError:
-        // handle specifically
-default:
-        // unknown error
-}
-```
-
-[Read the package documentation for more information](https://godoc.org/github.com/pkg/errors).
-
-## Roadmap
-
-With the upcoming [Go2 error proposals](https://go.googlesource.com/proposal/+/master/design/go2draft.md) this package is moving into maintenance mode. The roadmap for a 1.0 release is as follows:
-
-- 0.9. Remove pre Go 1.9 and Go 1.10 support, address outstanding pull requests (if possible)
-- 1.0. Final release.
-
-## Contributing
-
-Because of the Go2 errors changes, this package is not accepting proposals for new functionality. With that said, we welcome pull requests, bug fixes and issue reports. 
-
-Before sending a PR, please discuss your change by raising an issue.
-
-## License
-
-BSD-2-Clause
